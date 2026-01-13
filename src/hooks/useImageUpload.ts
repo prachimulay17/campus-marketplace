@@ -18,12 +18,7 @@ export const useImageUpload = () => {
       const formData = createFormData(files);
       const response = await api.post<{ success: boolean; data: ImageUploadResponse; message: string }>(
         endpoints.upload.images,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
+        formData
       );
 
       if (!response.data.success) {

@@ -6,17 +6,18 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 // Create axios instance with default config
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Important for cookies
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
+console.log("API BASE URL:", api.defaults.baseURL);
 
-// Request interceptor for adding auth headers if needed (though we're using cookies)
+
+// Request interceptor for adding auth headers
 api.interceptors.request.use(
   (config) => {
-    // You can add additional headers here if needed
-    // For now, we're relying on cookies for authentication
+    // Add token to Authorization header if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -36,9 +37,9 @@ api.interceptors.response.use(
 
       // Handle authentication errors
       if (status === 401) {
-        // Don't automatically redirect - let components handle authentication
-        return Promise.reject(new Error('Authentication required'));
-      }
+  localStorage.removeItem('token');
+  return Promise.reject(new Error('Session expired. Please login again.'));
+}
 
       // Handle validation errors
       if (status === 400 && data && typeof data === 'object' && 'message' in data) {
@@ -57,9 +58,10 @@ api.interceptors.response.use(
     }
 
     // Handle network errors
-    if (error.code === 'NETWORK_ERROR') {
-      return Promise.reject(new Error('Network error. Please check your connection.'));
-    }
+    if (!error.response) {
+  return Promise.reject(new Error('Network error. Backend not reachable.'));
+}
+
 
     // Handle timeout errors
     if (error.code === 'ECONNABORTED') {
@@ -75,13 +77,13 @@ api.interceptors.response.use(
 export const endpoints = {
   // Auth endpoints
   auth: {
-    register: '/users/register',
-    login: '/users/login',
-    logout: '/users/logout',
-    refreshToken: '/users/refresh-token',
-    me: '/users/me',
-    updateProfile: '/users/profile',
-    changePassword: '/users/change-password',
+    register: '/auth/register',
+    login: '/auth/login',
+    logout: '/auth/logout',
+    refreshToken: '/auth/refresh-token',
+    me: '/auth/me',
+    updateProfile: '/auth/profile',
+    changePassword: '/auth/change-password',
   },
 
   // Item endpoints
