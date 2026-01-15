@@ -15,11 +15,12 @@ const Login = () => {
   });
   const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const from = location.state?.from?.pathname || '/browse';
+      const from = (location.state as any)?.from?.pathname || '/browse';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, location]);
