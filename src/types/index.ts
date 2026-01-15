@@ -35,6 +35,7 @@ export interface Item {
   condition: Condition;
   images: string[];
   seller: {
+    email: any;
     _id: string;
     name: string;
     college: string;

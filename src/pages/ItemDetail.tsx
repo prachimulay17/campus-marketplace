@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Layout from '@/components/Layout';
 import { useQuery } from '@tanstack/react-query';
 import api, { endpoints } from '@/lib/api';
-import { ItemResponse, Category, Condition } from '@/types';
+import { ItemResponse, Category, Condition, Item } from '@/types';
 
 const getCategoryVariant = (category: Category) => {
   const variants: Record<Category, 'default' | 'secondary'> = {
@@ -149,7 +149,7 @@ const ItemDetail = () => {
 
             {/* Price */}
             <p className="text-3xl font-bold text-primary mb-6">
-              ${item.price}
+              ₹{item.price}
             </p>
 
             {/* Description */}

@@ -179,7 +179,7 @@ const Profile = () => {
                         </Badge>
                       </div>
                       <h3 className="font-semibold text-foreground line-clamp-1">{item.title}</h3>
-                      <p className="text-lg font-bold text-primary mt-1">${item.price}</p>
+                      <p className="text-lg font-bold text-primary mt-1">₹{item.price}</p>
                     </div>
 
                     {/* Actions */}

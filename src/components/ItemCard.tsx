@@ -63,7 +63,7 @@ const ItemCard = ({ item }: ItemCardProps) => {
 
         {/* Price */}
         <p className="text-lg font-bold text-primary">
-          ${item.price}
+          ₹{item.price}
         </p>
       </div>
     </Link>
