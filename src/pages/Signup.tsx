@@ -6,9 +6,15 @@ import { Label } from '@/components/ui/label';
 import { ShoppingBag, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { RegisterFormData } from '@/types';
+import api, { endpoints } from '@/lib/api';
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState<"register" | "verify">("register");
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [resendDisabled, setResendDisabled] = useState(false);
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
     email: '',
@@ -26,12 +32,61 @@ const Signup = () => {
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      await register(formData);
-    } catch (error) {
-      // Error handling is done in the auth context
+      const res = await api.post(endpoints.otp.send, { email: formData.email });
+      if (res.status === 200) {
+        setStep("verify");
+        setResendDisabled(true);
+        setTimeout(() => setResendDisabled(false), 30000); // Enable resend after 30 seconds
+      }
+    } catch (error: any) {
+      setError(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await api.post(endpoints.otp.verify, {
+        email: formData.email,
+        otp
+      });
+
+      if (res.status === 200) {
+        // Now register the user with full form data
+        await register(formData);
+        // Navigation is handled by AuthContext
+      }
+    } catch (error: any) {
+      setError(error.response?.data?.message || "Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await api.post(endpoints.otp.send, { email: formData.email });
+      if (res.status === 200) {
+        setResendDisabled(true);
+        setTimeout(() => setResendDisabled(false), 30000);
+      }
+    } catch (error: any) {
+      setError(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,87 +121,143 @@ const Signup = () => {
               <p className="text-muted-foreground">Join your campus marketplace today</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Your full name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  minLength={2}
-                  maxLength={50}
-                />
-              </div>
+            {step === "register" && (
+              <div className="transition-opacity duration-300">
+                <form onSubmit={handleRegister} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Your full name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                      minLength={2}
+                      maxLength={50}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@university.edu"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                />
-                <p className="text-xs text-muted-foreground">Use your university email for verification</p>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@university.edu"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                    />
+                    <p className="text-xs text-muted-foreground">Use your university email for verification</p>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="college">College/University</Label>
-                <Input
-                  id="college"
-                  type="text"
-                  placeholder="State University"
-                  value={formData.college}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  minLength={2}
-                  maxLength={100}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="college">College/University</Label>
+                    <Input
+                      id="college"
+                      type="text"
+                      placeholder="State University"
+                      value={formData.college}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                      minLength={2}
+                      maxLength={100}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Create a password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                        disabled={loading}
+                        minLength={6}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={loading}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
+                  </div>
+
+                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending OTP...
+                      </>
+                    ) : (
+                      'Create Account'
+                    )}
+                  </Button>
+                  {error && (
+                    <p className="text-sm text-destructive text-center mt-4">{error}</p>
+                  )}
+                </form>
+              </div>
+            )}
+
+            {step === "verify" && (
+              <div className="transition-opacity duration-300 space-y-5">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">Verify your Email</h2>
+                  <p className="text-muted-foreground">We sent a 6-digit code to {formData.email}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="otp">Verification Code</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    disabled={isLoading}
-                    minLength={6}
+                    id="otp"
+                    type="text"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter 6-digit code"
+                    disabled={loading}
+                    className="text-center text-lg tracking-widest"
                   />
+                </div>
+
+                <Button onClick={handleVerifyOtp} className="w-full" size="lg" disabled={loading || otp.length !== 6}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify & Create Account'
+                  )}
+                </Button>
+
+                <div className="text-center">
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
+                    onClick={handleResendOtp}
+                    disabled={loading || resendDisabled}
+                    className="text-sm text-primary hover:underline disabled:text-muted-foreground disabled:cursor-not-allowed"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {resendDisabled ? 'Resend OTP in 30s' : 'Resend OTP'}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
-              </div>
 
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Account...
-                  </>
-                ) : (
-                  'Create Account'
+                {error && (
+                  <p className="text-sm text-destructive text-center">{error}</p>
                 )}
-              </Button>
-            </form>
+              </div>
+            )}
 
             <p className="text-center text-sm text-muted-foreground mt-6">
               Already have an account?{' '}

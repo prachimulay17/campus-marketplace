@@ -103,6 +103,12 @@ export const endpoints = {
   upload: {
     images: '/upload/images',
   },
+
+  // OTP endpoints
+  otp: {
+    send: '/otp/send',
+    verify: '/otp/verify',
+  },
 };
 
 // Helper function to create FormData for file uploads
